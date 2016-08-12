@@ -1,5 +1,6 @@
-// pageJS 
-
+/*
+ *	$name	: Pagejs
+*/
 ;(function(){
 	// 配置
 	var options={
@@ -32,6 +33,9 @@
 	})
 	// 获取页面总高度
 	var totalHeight=document.documentElement.scrollHeight
+	// 缓存待用变量
+	var lastScrollTop=containerOffTop+(count-1)*screenHeight  // 最后一帧offsetTop
+	var bottomScrollTop=totalHeight-screenHeight  // 最底部的scrollTop
 	// 滑动
 	function goTo(n,callback){
 		isScroll=true;
@@ -92,6 +96,17 @@
 			})
 		}
 	}
+	// 处在滚动区域
+	function inScroll(func){
+		var state=-1 // 为1时在滚动区域，为-1时不在
+		var sTop
+		function handle(){
+			sTop=document.documentElement.scrollTop || document.body.scrollTop
+			state=(sTop>=containerOffTop && sTop<=lastScrollTop) ? 1 : -1;
+			func(state)
+		}
+		$(window).on('load scroll',handle)
+	}	
 	// 事件处理函数
 	function scrollHandle(e){
 		var delta=(e.originalEvent.wheelDelta && (e.originalEvent.wheelDelta > 0 ? 1 : -1)) ||  // chrome & ie
@@ -100,7 +115,7 @@
 	  if(isScroll) return false;
 	  if(delta>0){
 	  	// 向上滚
-	  	if(sTop>containerOffTop+(count-1)*screenHeight){
+	  	if(sTop>lastScrollTop){
 	  		goTo(count-1,callback)
 	  		return;
 	  	}
@@ -115,8 +130,8 @@
 	  		goTo(0,callback)
 	  		return;
 	  	}
-	  	if(sTop>containerOffTop+(count-1)*screenHeight){
-	  		$('html,body').stop().animate({'scrollTop':totalHeight-screenHeight},200)
+	  	if(sTop>lastScrollTop){
+	  		$('html,body').stop().animate({'scrollTop':bottomScrollTop},200)
 	  		return;
 	  	}
 	  	next(callback)
@@ -127,6 +142,13 @@
 		// 是否创建点
 		if(!!points){
 			pointsBox=createPoints();
+			inScroll(function(state){
+				if(state==-1){
+					pointsBox.hide()
+				}else if(state==1){
+					pointsBox.show()
+				}
+			})
 		}
 		// 渲染
 		render(0)
